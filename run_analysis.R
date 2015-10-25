@@ -19,7 +19,7 @@ run_analysis <- function(){
     
   # FIRST STEP
   # Merge two datasets: test measuraments and train measurements.
-  test <- read.table("./UCI HAR Dataset/test/x_test.txt")
+  test <- read.table("./UCI HAR Dataset/test/X_test.txt")
   train <- read.table("./UCI HAR Dataset/train/x_train.txt")
   #Merges the test and train data sets into one complete dataset
   complete <- bind_rows(test,train)
@@ -33,6 +33,10 @@ run_analysis <- function(){
   
   # Imports variables codes and names
   features <- read.table("./UCI HAR Dataset/features.txt")
+  # Name the columns on complete data frame
+  names(complete) <- features$V2
+  # Make every column with a different name
+  names(complete) <- make.names(names(complete),unique = TRUE)
   # Return the variables codes for those names containing the string "mean"
   features_mean <- filter(features,grepl("mean",V2))
   # Return the variables codes for those names containing the string "Mean"
@@ -42,7 +46,9 @@ run_analysis <- function(){
   features_std <- filter(features,grepl("std",V2))
   # Binds all variables codes with "mean", "Mean" or "std" strings
   features_selected <- bind_rows(features_mean,features_Mean,features_std)
-  
+  # Select the desired columns
+  complete_selected <- select(complete,features_selected$V1)
+
   # THIRD STEP
   # Include on the measurements datasets (train and test) the activity description
   act_labels <- read.table("./UCI HAR Dataset/activity_labels.txt")
@@ -51,25 +57,22 @@ run_analysis <- function(){
   train_labels <- select(merge(train_labels_code,act_labels),V2)
   test_labels <- select(merge(test_labels_code,act_labels),V2)
   labels <- bind_rows(test_labels,train_labels)
-  complete_act <- bind_cols(complete,labels)
+  names(labels) <- "activity"
+  complete_act <- bind_cols(complete_selected,labels)
   
   # FOURTH STEP
-  # Change the variable names on the dataset from codes to descriptive names
-  names(complete_act) <- c(paste(features$V2),"activity")
-  
-  
+  # Change the variable names on the dataset from codes to descriptive names. All column names
+  # were already changed on previous steps.
+
   # FIFTH STEP
   # Creates an independent tidy dataset with the average of each variable for 
   # each activity and each subject
   train_subjects <- read.table("./UCI HAR Dataset/train/subject_train.txt")
   test_subjects <- read.table("./UCI HAR Dataset/test/subject_test.txt")
   complete_subjects <- bind_rows(test_subjects,train_subjects)
-  
   names(complete_subjects) <- "subject"
   complete_act_sub <- bind_cols(complete_act,complete_subjects)
   
-  names(complete_act_sub) <- make.names(names(complete_act_sub),unique = TRUE)
-
   tidy_complete <- group_by(complete_act_sub,activity,subject)
 
   summary <- summarise_each(tidy_complete, funs(mean))
